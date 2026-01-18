@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+#
+# Hook: pre-iteration
+# Runs before each iteration of the loop
+#
+# Available environment variables:
+#   RALPH_ITERATION    - Current iteration number
+#   RALPH_SESSION_ID   - Unique session identifier
+#   RALPH_PROMPT       - The task prompt
+#   RALPH_LAST_OUTPUT  - Output from previous iteration
+#   RALPH_LOG_DIR      - Directory for log files
+#
+
+echo "[pre-iteration] Starting iteration $RALPH_ITERATION"
+
+# Example: Log iteration start time
+# echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) Iteration $RALPH_ITERATION start" >> "$RALPH_LOG_DIR/timing.log"
+
+# Example: Clear temp files between iterations
+# rm -f /tmp/ralph-* 2>/dev/null || true
+
+# Example: Notify external system
+# curl -s -X POST "https://your-webhook.com/ralph" \
+#     -d "{\"event\":\"iteration_start\",\"iteration\":$RALPH_ITERATION}" \
+#     2>/dev/null || true

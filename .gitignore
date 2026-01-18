@@ -1,0 +1,28 @@
+# Ralph Supreme ignores
+
+# State and logs (optional - you may want to track these)
+.ralph-state.json
+logs/
+
+# Config (contains local customizations)
+.ralphrc
+
+# Active hooks (examples are tracked)
+hooks/*.sh
+!hooks/*.sh.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Temp files
+*.tmp
+*.temp
+/tmp/

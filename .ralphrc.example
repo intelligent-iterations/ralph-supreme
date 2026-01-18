@@ -1,0 +1,83 @@
+# Ralph Supreme Configuration
+# Copy to .ralphrc and customize
+# These values override defaults from ralph-supreme.sh
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ITERATION LIMITS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Maximum number of loop iterations before stopping
+MAX_ITERATIONS=50
+
+# Timeout in minutes (0 = no timeout)
+TIMEOUT_MINUTES=60
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMPLETION DETECTION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# The phrase Claude should output when task is complete
+# Use in your prompt: "Output <promise>COMPLETE</promise> when done"
+COMPLETION_PROMISE="COMPLETE"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# RATE LIMITING
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Maximum API calls per hour (prevents runaway costs)
+RATE_LIMIT=100
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CIRCUIT BREAKER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Stop after N iterations with no progress (identical outputs)
+CIRCUIT_BREAKER_THRESHOLD=3
+
+# Stop after N consecutive errors
+ERROR_THRESHOLD=5
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PATHS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Directory for log files
+LOG_DIR="./logs"
+
+# State file for resume capability
+STATE_FILE=".ralph-state.json"
+
+# Directory containing hook scripts
+# HOOKS_DIR="${SCRIPT_DIR}/hooks"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FEATURES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Use tmux for monitoring dashboard
+USE_TMUX=false
+
+# Use git worktree for isolated development
+USE_WORKTREE=false
+
+# Enable verbose debug output
+VERBOSE=false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PROJECT-SPECIFIC SETTINGS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Uncomment and customize for your project:
+
+# For test-heavy projects:
+# COMPLETION_PROMISE="ALL_TESTS_PASS"
+# MAX_ITERATIONS=100
+
+# For short tasks:
+# MAX_ITERATIONS=10
+# TIMEOUT_MINUTES=15
+
+# For overnight runs:
+# MAX_ITERATIONS=200
+# TIMEOUT_MINUTES=480
+# RATE_LIMIT=50

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+#
+# Hook: post-stop
+# Runs when Ralph Supreme exits (cleanup)
+#
+# Available environment variables:
+#   RALPH_ITERATION    - Final iteration number
+#   RALPH_SESSION_ID   - Unique session identifier
+#   RALPH_PROMPT       - The task prompt
+#   RALPH_LAST_OUTPUT  - Last output
+#   RALPH_LOG_DIR      - Directory for log files
+#
+
+echo "[post-stop] Ralph Supreme session ending: $RALPH_SESSION_ID"
+
+# Example: Compress logs
+# gzip "$RALPH_LOG_DIR/ralph_${RALPH_SESSION_ID}.jsonl" 2>/dev/null || true
+
+# Example: Upload logs to cloud storage
+# aws s3 cp "$RALPH_LOG_DIR/" "s3://your-bucket/ralph-logs/${RALPH_SESSION_ID}/" --recursive 2>/dev/null || true
+
+# Example: Clean up temp files
+# rm -rf /tmp/ralph-${RALPH_SESSION_ID}-* 2>/dev/null || true
+
+# Example: Final git commit
+# if git diff --quiet; then
+#     echo "No uncommitted changes"
+# else
+#     git add -A
+#     git commit -m "Ralph Supreme session ${RALPH_SESSION_ID} - ${RALPH_ITERATION} iterations" --no-verify 2>/dev/null || true
+# fi
+
+# Example: Generate report
+# echo "Session $RALPH_SESSION_ID completed with $RALPH_ITERATION iterations" >> "$RALPH_LOG_DIR/sessions.log"

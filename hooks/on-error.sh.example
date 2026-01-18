@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+#
+# Hook: on-error
+# Runs when circuit breaker trips or fatal error occurs
+#
+# Available environment variables:
+#   RALPH_ITERATION    - Current iteration number
+#   RALPH_SESSION_ID   - Unique session identifier
+#   RALPH_PROMPT       - The task prompt
+#   RALPH_LAST_OUTPUT  - Last output before error
+#   RALPH_LOG_DIR      - Directory for log files
+#
+
+echo "[on-error] Error detected at iteration $RALPH_ITERATION"
+
+# Example: Save error state
+# cp "$RALPH_LOG_DIR/ralph_${RALPH_SESSION_ID}.jsonl" "$RALPH_LOG_DIR/error_backup_$(date +%s).jsonl"
+
+# Example: Send alert
+# curl -s -X POST "https://your-webhook.com/alert" \
+#     -d "{\"event\":\"ralph_error\",\"session\":\"$RALPH_SESSION_ID\",\"iteration\":$RALPH_ITERATION}" \
+#     2>/dev/null || true
+
+# Example: Revert changes
+# git checkout . 2>/dev/null || true
+
+# Example: Capture debugging info
+# echo "Last 50 lines of output:" > "$RALPH_LOG_DIR/error_debug.txt"
+# echo "$RALPH_LAST_OUTPUT" | tail -50 >> "$RALPH_LOG_DIR/error_debug.txt"

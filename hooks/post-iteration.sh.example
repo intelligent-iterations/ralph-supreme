@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+#
+# Hook: post-iteration
+# Runs after each iteration completes
+#
+# Available environment variables:
+#   RALPH_ITERATION    - Current iteration number
+#   RALPH_SESSION_ID   - Unique session identifier
+#   RALPH_PROMPT       - The task prompt
+#   RALPH_LAST_OUTPUT  - Output from this iteration
+#   RALPH_LOG_DIR      - Directory for log files
+#
+
+echo "[post-iteration] Completed iteration $RALPH_ITERATION"
+
+# Example: Run tests after each iteration
+# if ! npm test 2>/dev/null; then
+#     echo "Tests failed at iteration $RALPH_ITERATION"
+# fi
+
+# Example: Count lines of code added
+# git diff --stat HEAD~1 2>/dev/null || true
+
+# Example: Check code quality
+# npm run lint 2>/dev/null || true
+
+# Example: Auto-format code
+# npm run format 2>/dev/null || true

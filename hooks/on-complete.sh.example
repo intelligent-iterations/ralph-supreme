@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+#
+# Hook: on-complete
+# Runs when the completion promise is detected
+#
+# Available environment variables:
+#   RALPH_ITERATION    - Final iteration number
+#   RALPH_SESSION_ID   - Unique session identifier
+#   RALPH_PROMPT       - The task prompt
+#   RALPH_LAST_OUTPUT  - Final output
+#   RALPH_LOG_DIR      - Directory for log files
+#
+
+echo "[on-complete] Task completed at iteration $RALPH_ITERATION!"
+
+# Example: Run final test suite
+# npm test
+
+# Example: Build production artifacts
+# npm run build
+
+# Example: Create summary report
+# echo "=== Ralph Supreme Completion Report ===" > "$RALPH_LOG_DIR/summary.txt"
+# echo "Session: $RALPH_SESSION_ID" >> "$RALPH_LOG_DIR/summary.txt"
+# echo "Iterations: $RALPH_ITERATION" >> "$RALPH_LOG_DIR/summary.txt"
+# echo "Completed: $(date)" >> "$RALPH_LOG_DIR/summary.txt"
+
+# Example: Send notification
+# curl -s -X POST "https://your-webhook.com/ralph" \
+#     -d "{\"event\":\"complete\",\"iterations\":$RALPH_ITERATION}" \
+#     2>/dev/null || true
+
+# Example: Create git tag
+# git tag -a "ralph-complete-${RALPH_SESSION_ID}" -m "Completed by Ralph Supreme" 2>/dev/null || true

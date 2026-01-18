@@ -1,0 +1,58 @@
+# Task Prompt Template
+
+Use this file to define your task for Ralph Supreme. Copy to `PROMPT.md` and customize.
+
+---
+
+## Task
+
+[Describe what you want to build or accomplish]
+
+## Requirements
+
+- [ ] Requirement 1
+- [ ] Requirement 2
+- [ ] Requirement 3
+
+## Acceptance Criteria
+
+When complete, the following must be true:
+- Criteria 1
+- Criteria 2
+- All tests passing
+
+## Completion Signal
+
+When all requirements are met and acceptance criteria satisfied:
+1. Output: `<promise>COMPLETE</promise>`
+2. Include: `EXIT_SIGNAL: true`
+
+---
+
+## Example: REST API Task
+
+```markdown
+## Task
+
+Build a REST API for managing todo items.
+
+## Requirements
+
+- [ ] CRUD endpoints: GET/POST/PUT/DELETE /todos
+- [ ] Input validation on all endpoints
+- [ ] Error handling with proper HTTP status codes
+- [ ] SQLite database for persistence
+- [ ] Unit tests with >80% coverage
+
+## Acceptance Criteria
+
+- All endpoints respond correctly to valid requests
+- Invalid requests return appropriate error codes
+- All tests pass
+- README includes API documentation
+
+## Completion Signal
+
+When done: <promise>COMPLETE</promise>
+EXIT_SIGNAL: true
+```

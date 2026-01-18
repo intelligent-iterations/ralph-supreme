@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+#
+# Hook: pre-start
+# Runs once before the main loop begins
+#
+# Available environment variables:
+#   RALPH_ITERATION    - Current iteration (0 at start)
+#   RALPH_SESSION_ID   - Unique session identifier
+#   RALPH_PROMPT       - The task prompt
+#   RALPH_LOG_DIR      - Directory for log files
+#
+
+echo "[pre-start] Ralph Supreme session starting: $RALPH_SESSION_ID"
+
+# Example: Ensure dependencies are installed
+# npm install 2>/dev/null || true
+
+# Example: Clear previous build artifacts
+# rm -rf dist/ build/ 2>/dev/null || true
+
+# Example: Run initial tests to establish baseline
+# npm test 2>/dev/null || true
+
+# Example: Create a git checkpoint
+# git stash push -m "ralph-pre-${RALPH_SESSION_ID}" 2>/dev/null || true
