@@ -2,9 +2,10 @@
 
 **Advanced Autonomous AI Development Loop for Claude Code**
 
-Ralph Supreme merges the best of two Ralph frameworks:
+Ralph Supreme merges the best of three Ralph frameworks:
 - **[Anthropic's Ralph Wiggum](https://github.com/anthropics/claude-code/tree/main/plugins/ralph-wiggum)** - Completion promises, stop hooks, iterative philosophy
 - **[Frank Bria's Ralph-Claude-Code](https://github.com/frankbria/ralph-claude-code)** - Dual-gate completion, circuit breakers, monitoring
+- **[Steve Yegge's Beads](https://github.com/steveyegge/beads)** - Persistent task management that survives context compaction
 
 ## What is Ralph?
 
@@ -53,6 +54,89 @@ echo "Your task description..." > PROMPT.md
 - **Git Worktrees** - Isolated development with `--worktree` flag
 - **Configurable Everything** - Via `.ralphrc` file or CLI flags
 
+### Beads Task Management (NEW)
+- **Planning Before Execution** - Claude creates structured task breakdown before coding
+- **Persistent State** - Tasks survive context compaction in `.beads/` directory
+- **Dependency Graph** - Tasks can block other tasks
+- **Data-Driven Completion** - Loop until `bd ready` is empty
+
+## Beads Integration
+
+Ralph Supreme enforces **planning before execution** using Steve Yegge's Beads system.
+
+### Two-Phase Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  PHASE 1: PLANNING                                              │
+│  Claude analyzes task → Creates epic → Decomposes into tasks    │
+│  → Sets dependencies → Outputs PLANNING_COMPLETE                │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  PHASE 2: EXECUTION                                             │
+│  Loop: bd ready → bd start → implement → bd close → repeat      │
+│  Until: bd ready returns empty → Output COMPLETE                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Why Beads?
+
+| Problem | Beads Solution |
+|---------|----------------|
+| Context compaction loses progress | State persists in `.beads/` files |
+| "Where was I?" after interruption | `bd ready` shows next task |
+| No dependency awareness | `bd dep add` enforces order |
+| Unclear completion criteria | Done when `bd ready` is empty |
+| Decisions forgotten | `bd comment` preserves context |
+
+### Quick Setup
+
+```bash
+# Install Beads CLI
+npm install -g @anthropic/beads
+
+# Check installation
+./scripts/beads-setup.sh check
+
+# Initialize in your project
+bd init
+```
+
+### Beads Commands Reference
+
+```bash
+# Task Management
+bd create "Task name"              # Create task
+bd create "Epic" -t epic           # Create epic (container)
+bd create "Sub" --parent bd-XXX    # Create subtask
+
+# Workflow
+bd ready                           # Show unblocked tasks
+bd start bd-XXX                    # Mark task in progress
+bd close bd-XXX                    # Mark task complete
+bd status                          # Show all tasks
+
+# Dependencies
+bd dep add bd-Y bd-X               # Y waits for X to complete
+
+# Documentation
+bd comment bd-XXX "note"           # Add context/decision
+bd show bd-XXX                     # Show task details
+```
+
+### Skipping Beads
+
+For simple tasks, skip the planning phase:
+
+```bash
+# Skip planning, use legacy mode
+./ralph-supreme.sh --prompt "Simple fix" --skip-planning
+
+# Disable Beads entirely
+./ralph-supreme.sh --prompt "Quick task" --no-beads
+```
+
 ## Usage
 
 ```
@@ -70,6 +154,10 @@ Options:
   --resume                     Resume from previous state
   --worktree                   Use git worktree for isolation
   --monitor                    Run with tmux monitoring dashboard
+
+Beads Options:
+  --skip-planning              Skip planning phase (use existing beads or none)
+  --no-beads                   Disable Beads entirely (legacy mode)
 
   --verbose                    Enable verbose output
   --dry-run                    Show what would be executed
@@ -246,7 +334,10 @@ MIT
 - Original Ralph concept: [Geoffrey Huntley](https://ghuntley.com/ralph/)
 - Anthropic's Ralph Wiggum plugin
 - Frank Bria's Ralph-Claude-Code
+- Steve Yegge's Beads: [Persistent Task Management](https://disruptedai.substack.com/p/persistent-task-management-with-beads)
 
 ---
 
 *"Me fail English? That's unpossible!" - Ralph Wiggum*
+
+*"The agent's context window is temporary, but the work graph should be permanent." - Steve Yegge*

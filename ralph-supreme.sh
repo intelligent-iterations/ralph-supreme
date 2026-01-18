@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 #
 # Ralph Supreme - Advanced Autonomous AI Development Loop
-# Merges: Anthropic's Ralph Wiggum + Frank Bria's Ralph-Claude-Code
+# Merges: Anthropic's Ralph Wiggum + Frank Bria's Ralph-Claude-Code + Beads
 #
 # A self-referential bash loop that runs Claude Code iteratively
 # until completion criteria are met. Combines:
 # - Anthropic's completion promise detection and stop hooks
 # - Frank Bria's dual-condition gate, circuit breaker, and monitoring
+# - Steve Yegge's Beads for persistent task management
 #
 # Usage: ./ralph-supreme.sh --prompt "Your task" [options]
 #
@@ -39,6 +40,9 @@ USE_WORKTREE="${USE_WORKTREE:-false}"
 VERBOSE="${VERBOSE:-false}"
 DRY_RUN="${DRY_RUN:-false}"
 RESUME="${RESUME:-false}"
+SKIP_PLANNING="${SKIP_PLANNING:-false}"
+USE_BEADS="${USE_BEADS:-true}"
+PROMPTS_DIR="${PROMPTS_DIR:-${SCRIPT_DIR}/prompts}"
 
 # Runtime state
 PROMPT=""
@@ -50,6 +54,9 @@ HOUR_START=$(date +%s)
 NO_PROGRESS_COUNT=0
 ERROR_COUNT=0
 SESSION_ID=$(date +%Y%m%d_%H%M%S)_$$
+PLANNING_COMPLETE=false
+CURRENT_EPIC_ID=""
+CURRENT_TASK_ID=""
 
 # Colors for output
 RED='\033[0;31m'
@@ -126,19 +133,29 @@ Options:
   --worktree                   Use git worktree for isolation
   --monitor                    Run with tmux monitoring dashboard
 
+Beads Task Management:
+  --skip-planning              Skip the planning phase (jump to execution)
+  --no-beads                   Disable Beads integration entirely
+
   --verbose                    Enable verbose output
   --dry-run                    Show what would be executed without running
   --help                       Show this help message
   --version                    Show version
 
+Workflow:
+  1. PLANNING PHASE: Claude creates Beads task structure (epic + tasks + deps)
+  2. EXECUTION PHASE: Loop through tasks until bd ready is empty
+
 Environment:
   Place a .ralphrc file in this directory or home to set defaults.
   Create PROMPT.md for persistent task instructions.
+  Beads CLI (bd) required for task management: npm install -g @anthropic/beads
 
 Examples:
   $(basename "$0") --prompt "Build a REST API with tests" --max-iterations 30
-  $(basename "$0") --prompt "Fix all type errors" --completion-promise "ALL_FIXED"
+  $(basename "$0") --prompt "Fix all type errors" --skip-planning
   $(basename "$0") --resume --monitor
+  $(basename "$0") --prompt "Simple task" --no-beads
 
 EOF
 }
@@ -211,6 +228,183 @@ run_hook() {
             log WARN "Hook $hook_name returned non-zero"
         fi
     fi
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BEADS INTEGRATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+check_beads_installed() {
+    if ! command -v bd &> /dev/null; then
+        return 1
+    fi
+    return 0
+}
+
+init_beads() {
+    if [[ "$USE_BEADS" != "true" ]]; then
+        return 0
+    fi
+
+    if ! check_beads_installed; then
+        log WARN "Beads (bd) not installed. Install with: npm install -g @anthropic/beads"
+        log WARN "Continuing without Beads task management"
+        USE_BEADS="false"
+        return 0
+    fi
+
+    # Initialize beads if not already done
+    if [[ ! -d ".beads" ]]; then
+        log INFO "Initializing Beads task database..."
+        bd init 2>/dev/null || true
+    fi
+
+    log INFO "Beads task management enabled"
+}
+
+get_beads_ready_count() {
+    if [[ "$USE_BEADS" != "true" ]]; then
+        echo "-1"
+        return
+    fi
+
+    local count=$(bd ready 2>/dev/null | wc -l | tr -d ' ')
+    echo "$count"
+}
+
+get_next_beads_task() {
+    if [[ "$USE_BEADS" != "true" ]]; then
+        echo ""
+        return
+    fi
+
+    # Get first ready task
+    bd ready 2>/dev/null | head -1 | awk '{print $1}'
+}
+
+check_beads_complete() {
+    if [[ "$USE_BEADS" != "true" ]]; then
+        return 1
+    fi
+
+    local ready_count=$(get_beads_ready_count)
+    if [[ "$ready_count" == "0" ]]; then
+        log INFO "All Beads tasks complete (bd ready is empty)"
+        return 0
+    fi
+    return 1
+}
+
+load_beads_system_prompt() {
+    local system_prompt_file="${PROMPTS_DIR}/BEADS_SYSTEM.md"
+    if [[ -f "$system_prompt_file" ]]; then
+        cat "$system_prompt_file"
+    else
+        log WARN "Beads system prompt not found at $system_prompt_file"
+        echo ""
+    fi
+}
+
+load_planning_prompt() {
+    local planning_file="${PROMPTS_DIR}/PLANNING_PHASE.md"
+    if [[ -f "$planning_file" ]]; then
+        # Replace placeholder with actual task
+        sed "s|{{TASK_PROMPT}}|$PROMPT|g" "$planning_file"
+    else
+        log WARN "Planning prompt not found at $planning_file"
+        echo ""
+    fi
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PLANNING PHASE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+run_planning_phase() {
+    if [[ "$SKIP_PLANNING" == "true" ]]; then
+        log INFO "Skipping planning phase (--skip-planning)"
+        PLANNING_COMPLETE=true
+        return 0
+    fi
+
+    if [[ "$USE_BEADS" != "true" ]]; then
+        log INFO "Beads disabled, skipping planning phase"
+        PLANNING_COMPLETE=true
+        return 0
+    fi
+
+    log INFO "═══════════════════════════════════════════════════════════════════"
+    log INFO "PLANNING PHASE - Establishing Beads task structure"
+    log INFO "═══════════════════════════════════════════════════════════════════"
+
+    local planning_prompt=$(load_planning_prompt)
+    local system_prompt=$(load_beads_system_prompt)
+
+    if [[ -z "$planning_prompt" ]]; then
+        log ERROR "Could not load planning prompt"
+        return 1
+    fi
+
+    local full_prompt="$system_prompt
+
+---
+
+$planning_prompt"
+
+    log INFO "Running planning iteration..."
+
+    local max_planning_attempts=3
+    local attempt=0
+
+    while (( attempt < max_planning_attempts )); do
+        ((attempt++))
+        log INFO "Planning attempt $attempt/$max_planning_attempts"
+
+        check_rate_limit
+
+        local output=$(run_claude "$full_prompt")
+
+        # Check if planning is complete
+        if echo "$output" | grep -q "PLANNING_COMPLETE: true"; then
+            log INFO "Planning phase completed successfully"
+
+            # Extract epic ID if present
+            CURRENT_EPIC_ID=$(echo "$output" | grep -oP 'EPIC_ID: \K[^\s]+' || echo "")
+
+            if [[ -n "$CURRENT_EPIC_ID" ]]; then
+                log INFO "Epic created: $CURRENT_EPIC_ID"
+            fi
+
+            # Verify beads were created
+            local ready_count=$(get_beads_ready_count)
+            if [[ "$ready_count" -gt 0 ]]; then
+                log INFO "Beads structure verified: $ready_count tasks ready"
+                PLANNING_COMPLETE=true
+                return 0
+            else
+                log WARN "No ready tasks found after planning"
+            fi
+        fi
+
+        log WARN "Planning not complete, retrying..."
+
+        # Update prompt for retry
+        full_prompt="$system_prompt
+
+---
+
+$planning_prompt
+
+PREVIOUS ATTEMPT DID NOT COMPLETE PLANNING. Please ensure you:
+1. Create an epic with bd create
+2. Create tasks with proper dependencies
+3. Output PLANNING_COMPLETE: true when done
+4. Verify bd ready shows at least one task"
+
+    done
+
+    log ERROR "Planning phase failed after $max_planning_attempts attempts"
+    return 1
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -291,6 +485,14 @@ check_completion() {
     local output="$1"
     local indicators=0
 
+    # BEADS COMPLETION: Check if all beads tasks are done
+    if [[ "$USE_BEADS" == "true" ]] && check_beads_installed; then
+        if check_beads_complete; then
+            log INFO "Beads completion: all tasks done (bd ready is empty)"
+            ((indicators+=2))  # Strong indicator
+        fi
+    fi
+
     # Check for explicit completion promise (from Anthropic's approach)
     if echo "$output" | grep -qF "$COMPLETION_PROMISE"; then
         log INFO "Completion promise detected: $COMPLETION_PROMISE"
@@ -330,6 +532,14 @@ check_completion() {
     if (( indicators >= 3 )); then
         log INFO "Multiple completion indicators ($indicators) detected"
         return 0
+    fi
+
+    # BEADS-ONLY completion: if beads shows done and we have the promise
+    if [[ "$USE_BEADS" == "true" ]] && check_beads_complete; then
+        if echo "$output" | grep -qF "$COMPLETION_PROMISE"; then
+            log INFO "Beads complete + completion promise"
+            return 0
+        fi
     fi
 
     return 1
@@ -439,15 +649,59 @@ build_iteration_prompt() {
     local last_output="$2"
     local iteration="$3"
 
+    # Load Beads system prompt if available
+    local system_context=""
+    if [[ "$USE_BEADS" == "true" ]]; then
+        system_context=$(load_beads_system_prompt)
+    fi
+
+    # Get current beads status
+    local beads_status=""
+    local current_task=""
+    if [[ "$USE_BEADS" == "true" ]] && check_beads_installed; then
+        current_task=$(get_next_beads_task)
+        local ready_count=$(get_beads_ready_count)
+
+        if [[ -n "$current_task" ]]; then
+            beads_status="BEADS STATUS:
+Current task: $current_task
+Ready tasks: $ready_count
+$(bd show "$current_task" 2>/dev/null || echo "")
+
+INSTRUCTIONS:
+1. Run: bd start $current_task
+2. Complete the task described above
+3. Document decisions: bd comment $current_task \"DECISION: ...\"
+4. When done: bd close $current_task
+5. Check: bd ready for next task"
+        else
+            beads_status="BEADS STATUS:
+No tasks ready. Check if all tasks are complete with: bd status
+
+If epic is complete, output:
+<promise>$COMPLETION_PROMISE</promise>
+EXIT_SIGNAL: true"
+        fi
+    fi
+
     cat << EOF
 [RALPH SUPREME - Iteration $iteration/$MAX_ITERATIONS]
 
-TASK:
+${system_context:+$system_context
+
+---
+
+}ORIGINAL TASK:
 $base_prompt
 
-COMPLETION CRITERIA:
-When the task is fully complete, output: <promise>$COMPLETION_PROMISE</promise>
-Also include EXIT_SIGNAL: true when ready to finish.
+${beads_status:+$beads_status
+
+---
+
+}COMPLETION CRITERIA:
+When ALL beads tasks are complete (bd ready returns empty), output:
+<promise>$COMPLETION_PROMISE</promise>
+EXIT_SIGNAL: true
 
 $(if [[ -n "$last_output" ]]; then
 echo "PREVIOUS ITERATION SUMMARY:"
@@ -456,7 +710,14 @@ echo ""
 echo "Continue from where you left off. Build on previous progress."
 fi)
 
-Remember: Iteration > Perfection. Make progress, commit often, and signal completion only when truly done.
+EXECUTION RULES:
+1. Work on ONE task at a time (the current task from bd ready)
+2. Document ALL decisions with bd comment
+3. Close tasks ONLY when fully complete
+4. Check bd ready after closing each task
+5. Signal completion ONLY when bd ready is empty
+
+Remember: Iteration > Perfection. Make progress, commit often, document decisions.
 EOF
 }
 
@@ -605,6 +866,14 @@ parse_args() {
                 DRY_RUN="true"
                 shift
                 ;;
+            --skip-planning)
+                SKIP_PLANNING="true"
+                shift
+                ;;
+            --no-beads)
+                USE_BEADS="false"
+                shift
+                ;;
             --help)
                 usage
                 exit 0
@@ -634,6 +903,8 @@ main() {
     # Resume mode
     if [[ "$RESUME" == "true" ]]; then
         load_state || exit 1
+        # When resuming, skip planning (already done)
+        SKIP_PLANNING="true"
     fi
 
     # Load prompt from file if not provided
@@ -655,22 +926,65 @@ main() {
     log INFO "Completion promise: $COMPLETION_PROMISE"
     log INFO "Timeout: ${TIMEOUT_MINUTES} minutes"
     log INFO "Rate limit: ${RATE_LIMIT}/hour"
+    log INFO "Beads enabled: $USE_BEADS"
+    log INFO "Skip planning: $SKIP_PLANNING"
 
     # Setup
     mkdir -p "$LOG_DIR"
     setup_worktree
     setup_tmux_monitor
 
-    # Run main loop
+    # Initialize Beads if enabled
+    if [[ "$USE_BEADS" == "true" ]]; then
+        init_beads
+    fi
+
+    # ═══════════════════════════════════════════════════════════════════
+    # PHASE 1: PLANNING (Beads task structure)
+    # ═══════════════════════════════════════════════════════════════════
+    if [[ "$USE_BEADS" == "true" ]] && [[ "$SKIP_PLANNING" != "true" ]]; then
+        if ! run_planning_phase; then
+            echo ""
+            log ERROR "Planning phase failed"
+            echo -e "${RED}Could not establish Beads task structure. Use --skip-planning to bypass.${NC}"
+            exit 1
+        fi
+        echo ""
+        log INFO "Planning complete. Starting execution phase..."
+        echo ""
+    fi
+
+    # ═══════════════════════════════════════════════════════════════════
+    # PHASE 2: EXECUTION (Main loop)
+    # ═══════════════════════════════════════════════════════════════════
     if main_loop; then
         echo ""
         log INFO "Ralph Supreme completed successfully!"
         echo -e "${GREEN}Task completed in $ITERATION iterations${NC}"
+
+        # Show final beads status
+        if [[ "$USE_BEADS" == "true" ]] && check_beads_installed; then
+            echo ""
+            echo -e "${CYAN}Final Beads Status:${NC}"
+            bd status 2>/dev/null || true
+        fi
+
         exit 0
     else
         echo ""
         log WARN "Ralph Supreme stopped before completion"
         echo -e "${YELLOW}Stopped at iteration $ITERATION. Use --resume to continue.${NC}"
+
+        # Show current beads status
+        if [[ "$USE_BEADS" == "true" ]] && check_beads_installed; then
+            echo ""
+            echo -e "${CYAN}Current Beads Status:${NC}"
+            bd status 2>/dev/null || true
+            echo ""
+            echo -e "${CYAN}Ready tasks:${NC}"
+            bd ready 2>/dev/null || true
+        fi
+
         exit 1
     fi
 }
