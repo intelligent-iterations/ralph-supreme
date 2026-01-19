@@ -336,6 +336,14 @@ MIT
 - Frank Bria's Ralph-Claude-Code
 - Steve Yegge's Beads: [Persistent Task Management](https://disruptedai.substack.com/p/persistent-task-management-with-beads)
 
+## Origin
+
+Ralph Supreme was born from work on two parent projects at [Intelligent Iterations](https://github.com/intelligent-iterations):
+- **[vibemanager](https://github.com/intelligent-iterations/vibemanager)** - AI-powered project management board for agentic programming workflows
+- **vs-meta** - Meta tooling and configuration for AI-assisted development
+
+The need for a robust autonomous development loop emerged while building these tools, leading to the creation of Ralph Supreme.
+
 ---
 
 *"Me fail English? That's unpossible!" - Ralph Wiggum*
