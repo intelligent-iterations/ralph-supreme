@@ -308,8 +308,11 @@ load_beads_system_prompt() {
 load_planning_prompt() {
     local planning_file="${PROMPTS_DIR}/PLANNING_PHASE.md"
     if [[ -f "$planning_file" ]]; then
-        # Replace placeholder with actual task
-        sed "s|{{TASK_PROMPT}}|$PROMPT|g" "$planning_file"
+        # Replace placeholder with actual task using bash parameter expansion
+        # This safely handles multi-line PROMPT with any special characters
+        local template
+        template=$(<"$planning_file")
+        printf '%s\n' "${template//\{\{TASK_PROMPT\}\}/$PROMPT}"
     else
         log WARN "Planning prompt not found at $planning_file"
         echo ""
