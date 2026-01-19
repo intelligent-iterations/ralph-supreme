@@ -1,0 +1,4 @@
+{"id":"bd-r5a1","type":"epic","title":"Epic: Create Hello World Python Script","status":"open","created":"2026-01-18T12:00:00Z"}
+{"id":"bd-r5a1.1","type":"task","title":"Create hello.py with print statement","status":"open","parent":"bd-r5a1","created":"2026-01-18T12:00:01Z"}
+{"id":"bd-r5a1.2","type":"task","title":"Verify script runs correctly","status":"open","parent":"bd-r5a1","deps":["bd-r5a1.1"],"created":"2026-01-18T12:00:02Z"}
+{"id":"bd-r5a1.3","type":"task","title":"Output completion signal","status":"open","parent":"bd-r5a1","deps":["bd-r5a1.2"],"created":"2026-01-18T12:00:03Z"}
